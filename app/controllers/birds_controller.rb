@@ -1,5 +1,7 @@
 class BirdsController < ApplicationController
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found_response
+  # added rescue_from
+  rescue_from ActiveRecord::RecordInvalid, with: :render_unprocessable_entity_response
 
   # GET /birds
   def index
@@ -9,9 +11,27 @@ class BirdsController < ApplicationController
 
   # POST /birds
   def create
+    # create! exceptions will be handled by the rescue_from ActiveRecord::RecordInvalid code
     bird = Bird.create(bird_params)
     render json: bird, status: :created
   end
+
+  # def create
+  #   bird = Bird.create(bird_params)
+  #   if bird.valid?
+  #     render json: bird, status: :created
+  #   else
+  #     render json: { errors: bird.errors }, status: :unprocessable_entity
+  #   end
+  # end
+  
+  # def create
+  #   bird = Bird.create!(bird_params)
+  #   render json: bird, status: :created
+  # rescue ActiveRecord::RecordInvalid => invalid
+  #   render json: { errors: invalid.record.errors }, status: :unprocessable_entity
+  # end
+  
 
   # GET /birds/:id
   def show
@@ -21,10 +41,19 @@ class BirdsController < ApplicationController
 
   # PATCH /birds/:id
   def update
+    # update! exceptions will be handled by the rescue_from ActiveRecord::RecordInvalid code
     bird = find_bird
     bird.update(bird_params)
     render json: bird
   end
+
+  # def update
+  #   bird = find_bird
+  #   bird.update!(bird_params)
+  #   render json: bird
+  # rescue ActiveRecord::RecordInvalid => invalid
+  #   render json: { errors: invalid.record.errors }, status: :unprocessable_entity
+  # end
 
   # DELETE /birds/:id
   def destroy
@@ -34,6 +63,16 @@ class BirdsController < ApplicationController
   end
 
   private
+
+  def render_unprocessable_entity_response(invalid)
+    # return a JSON object in the body of the response with a key of errors pointing to a nested object 
+    # where the keys are the invalid attributes, and values are the validation error messages
+    # render json: { errors: invalid.record.errors }, status: :unprocessable_entity
+    
+    # output an array of pre-formatted error messages
+    render json: { errors: invalid.record.errors.full_messages }, status: :unprocessable_entity
+
+  end
 
   def find_bird
     Bird.find(params[:id])
